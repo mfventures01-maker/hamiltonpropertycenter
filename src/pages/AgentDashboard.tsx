@@ -21,7 +21,6 @@ import {
     Activity,
     LayoutGrid,
     ShieldAlert,
-    LayoutPulse,
     Brain
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -170,7 +169,7 @@ export const AgentDashboard = () => {
                             {/* Metrics Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                 {[
-                                    { label: "Asset Movement", value: stats.views, icon: LayoutPulse, trend: "+12%" },
+                                    { label: "Asset Movement", value: stats.views, icon: BarChart3, trend: "+12%" },
                                     { label: "Pipeline Velocity", value: stats.inquiries, icon: Target, trend: "+5%" },
                                     { label: "High Intent", value: stats.hotLeads, icon: Zap, trend: "+8%" },
                                     { label: "Settled Capital", value: stats.closedDeals, icon: Trophy, trend: "+15%" },

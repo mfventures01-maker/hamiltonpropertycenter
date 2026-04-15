@@ -7,7 +7,6 @@ import {
     ArrowUpRight,
     ShieldCheck,
     TrendingDown,
-    LayoutPulse,
     LayoutGrid
 } from "lucide-react";
 
@@ -42,7 +41,7 @@ export const DealIntelligence: React.FC = () => {
                 <div className="lg:col-span-8 space-y-8">
                     <div className="flex items-center justify-between border-b border-white/5 pb-6">
                         <div className="flex items-center gap-3">
-                            <LayoutPulse className="w-5 h-5 text-secondary" />
+                            <BarChart3 className="w-5 h-5 text-secondary" />
                             <h4 className="text-white text-xs font-bold uppercase tracking-widest">Global Asset Movement</h4>
                         </div>
                         <button className="text-secondary text-[9px] uppercase font-bold tracking-widest">View Historical Analytics</button>

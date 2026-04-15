@@ -16,11 +16,27 @@
 }
 
 @layer base {
+
+  html,
   body {
-    @apply font-secondary bg-white text-primary antialiased;
+    @apply font-secondary bg-primary text-white antialiased overflow-x-hidden;
+    overscroll-behavior-y: none;
+    /* Disable pull-to-refresh on mobile */
+    -webkit-overflow-scrolling: touch;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-primary tracking-tight;
+  }
+
+  /* Remove tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -28,6 +44,7 @@
   .container-custom {
     @apply max-w-[1400px] mx-auto px-8;
   }
+
   .vertical-text {
     writing-mode: vertical-rl;
     text-orientation: mixed;
