@@ -1,0 +1,7 @@
+{
+  "name": "Hamilton Property Center | Real Estate in Asaba",
+  "description": "Hamilton Property Center is Asaba's premier property investment and advisory firm. We help you acquire secure, high-growth land and property investments in Asaba, Delta State.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
