@@ -2,13 +2,13 @@ import { useParams, Link } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, ChevronLeft, Bed, Bath, Square, CheckCircle, Mail, Phone, Loader2, Eye } from "lucide-react";
-import { db, doc, getDoc, collection, addDoc } from "../lib/firebase";
-import { useFirebase } from "../context/FirebaseContext";
+import { supabase } from "../lib/supabase";
+import { useSupabase } from "../context/SupabaseContext";
 import { VirtualTour } from "./VirtualTour";
 
 export const PropertyDetails = () => {
   const { id } = useParams();
-  const { user, isAuthReady } = useFirebase();
+  const { user, profile, loading: authLoading } = useSupabase();
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [inquiryLoading, setInquiryLoading] = useState(false);
@@ -21,15 +21,21 @@ export const PropertyDetails = () => {
   });
 
   useEffect(() => {
-    if (!isAuthReady || !id) return;
+    if (authLoading || !id) return;
 
     const fetchProperty = async () => {
       try {
-        const docRef = doc(db, "properties", id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProperty({ id: docSnap.id, ...docSnap.data() });
-        }
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*, agents(company_name, verified)")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+        if (data) setProperty(data);
+
+        // Track View
+        await supabase.rpc('increment_view', { x_row_id: id }).catch(() => { });
       } catch (error) {
         console.error("Error fetching property:", error);
       } finally {
@@ -38,13 +44,13 @@ export const PropertyDetails = () => {
     };
 
     fetchProperty();
-  }, [id, isAuthReady]);
+  }, [id, authLoading]);
 
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        name: user.displayName || "",
+        name: profile?.full_name || user.email?.split('@')[0] || "",
         email: user.email || ""
       }));
     }
@@ -53,18 +59,18 @@ export const PropertyDetails = () => {
   const handleInquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!property) return;
-    
+
     setInquiryLoading(true);
     try {
-      await addDoc(collection(db, "inquiries"), {
-        propertyId: property.id,
-        propertyTitle: property.title,
-        userName: formData.name,
-        userEmail: formData.email,
+      const { error } = await supabase.from("inquiries").insert({
+        property_id: property.id,
+        agent_id: property.agent_id,
+        user_name: formData.name,
+        user_email: formData.email,
         message: formData.message,
-        status: "pending",
-        createdAt: new Date()
       });
+      if (error) throw error;
+
       setInquirySent(true);
       setFormData(prev => ({ ...prev, message: "" }));
     } catch (error) {
@@ -94,20 +100,20 @@ export const PropertyDetails = () => {
         <Link to="/" className="flex items-center gap-2 text-primary/40 hover:text-secondary transition-colors uppercase tracking-widest text-xs font-bold mb-8">
           <ChevronLeft className="w-4 h-4" /> Back to Listings
         </Link>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-12">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="relative aspect-video rounded-custom overflow-hidden shadow-2xl group"
             >
               <img src={property.image} alt={property.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              
+
               {property.virtualTourUrl && (
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                  <button 
+                  <button
                     onClick={() => setIsTourOpen(true)}
                     className="bg-white text-primary px-8 py-4 rounded-custom font-bold uppercase tracking-widest text-xs flex items-center gap-3 hover:bg-secondary hover:scale-105 transition-all shadow-2xl"
                   >
@@ -117,11 +123,11 @@ export const PropertyDetails = () => {
               )}
             </motion.div>
 
-            <VirtualTour 
-              isOpen={isTourOpen} 
-              onClose={() => setIsTourOpen(false)} 
-              imageUrl={property.virtualTourUrl} 
-              title={property.title} 
+            <VirtualTour
+              isOpen={isTourOpen}
+              onClose={() => setIsTourOpen(false)}
+              imageUrl={property.virtualTourUrl}
+              title={property.title}
             />
 
             <div className="space-y-6">
@@ -182,9 +188,9 @@ export const PropertyDetails = () => {
                 <h3 className="text-2xl font-primary text-secondary">Inquire About This Property</h3>
                 <p className="text-white/60 text-sm">Our elite advisors are ready to assist you.</p>
               </div>
-              
+
               {inquirySent ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-white/5 p-6 rounded-custom border border-secondary/20 text-center space-y-4"
@@ -192,7 +198,7 @@ export const PropertyDetails = () => {
                   <CheckCircle className="w-12 h-12 text-secondary mx-auto" />
                   <h4 className="text-xl font-primary">Inquiry Sent</h4>
                   <p className="text-white/60 text-sm">Thank you for your interest. An advisor will contact you shortly.</p>
-                  <button 
+                  <button
                     onClick={() => setInquirySent(false)}
                     className="text-secondary text-xs uppercase tracking-widest font-bold hover:text-white transition-colors"
                   >
@@ -201,31 +207,31 @@ export const PropertyDetails = () => {
                 </motion.div>
               ) : (
                 <form onSubmit={handleInquiry} className="space-y-4">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
-                    placeholder="Full Name" 
+                    placeholder="Full Name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-custom py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:border-secondary transition-colors" 
+                    className="w-full bg-white/5 border border-white/10 rounded-custom py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:border-secondary transition-colors"
                   />
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     required
-                    placeholder="Email Address" 
+                    placeholder="Email Address"
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-custom py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:border-secondary transition-colors" 
+                    className="w-full bg-white/5 border border-white/10 rounded-custom py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:border-secondary transition-colors"
                   />
-                  <textarea 
+                  <textarea
                     required
-                    placeholder="Your Message" 
-                    rows={4} 
+                    placeholder="Your Message"
+                    rows={4}
                     value={formData.message}
                     onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                     className="w-full bg-white/5 border border-white/10 rounded-custom py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:border-secondary transition-colors"
                   ></textarea>
-                  <button 
+                  <button
                     disabled={inquiryLoading}
                     className="w-full bg-secondary text-primary py-4 rounded-custom font-bold uppercase tracking-widest text-xs hover:bg-white transition-all flex items-center justify-center gap-2"
                   >

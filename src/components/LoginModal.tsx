@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User as UserIcon } from "lucide-react";
-import { Link } from "react-router-dom";
-import { auth, googleProvider, signInWithPopup } from "../lib/firebase";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import { Logo } from "./Logo";
 
 interface LoginModalProps {
@@ -14,20 +14,41 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const { error: err } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (err) throw err;
       onClose();
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For demo purposes, we'll just show an error since we only support Google Login for now
-    setError("Only Google Login is supported in this demo.");
+    setError("");
+    setLoading(true);
+
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (err) throw err;
+
+      onClose();
+      navigate('/profile');
+    } catch (err: any) {
+      setError(err.message || "Invalid login credentials.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,7 +97,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <span className="relative bg-white px-4 text-[10px] uppercase tracking-widest text-primary/40">Or continue with email</span>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleEmailLogin} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs uppercase tracking-widest font-bold text-primary/60">Email Address</label>
                   <div className="relative">
@@ -105,8 +126,11 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                     />
                   </div>
                 </div>
-                <button className="w-full bg-primary text-white py-4 rounded-custom font-bold uppercase tracking-widest text-sm hover:bg-secondary hover:text-primary transition-all">
-                  Sign In
+                <button
+                  disabled={loading}
+                  className="w-full bg-primary text-white py-4 rounded-custom font-bold uppercase tracking-widest text-sm hover:bg-secondary hover:text-primary transition-all disabled:opacity-50"
+                >
+                  {loading ? "Signing In..." : "Sign In"}
                 </button>
               </form>
               <div className="text-center space-y-4">

@@ -16,9 +16,8 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { PropertyDetailsPage } from "./pages/PropertyDetails";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { FavoritesPage } from "./pages/Favorites";
-import { Logo } from "./components/Logo";
-import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
-import { db, collection, onSnapshot, query, orderBy, auth, signOut, limit } from "./lib/firebase";
+import { SupabaseProvider, useSupabase } from "./context/SupabaseContext";
+import { supabase } from "./lib/supabase";
 
 // New Onboarding Pages
 import { Register } from "./pages/Register";
@@ -28,7 +27,7 @@ import { PropertiesPage } from "./pages/Properties";
 // --- COMPONENTS ---
 
 const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
-  const { user, profile } = useFirebase();
+  const { user, profile, signOut } = useSupabase();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +42,7 @@ const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -61,8 +60,8 @@ const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 w-full z-50 transition-all duration-500 px-12 py-8 flex items-center justify-between",
-        isScrolled ? "bg-primary/95 backdrop-blur-md py-6 shadow-2xl" : "bg-transparent"
+        "fixed top-0 left-0 w-full z-50 transition-all duration-500 px-12 py-10 flex items-center justify-between",
+        isScrolled ? "bg-primary/80 backdrop-blur-xl py-6 shadow-2xl border-b border-white/5" : "bg-transparent"
       )}
     >
       <div className="flex items-center gap-12">
@@ -118,14 +117,14 @@ const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
         {user ? (
           <Link to="/profile" className="flex items-center gap-3 text-white group">
             <div className="w-8 h-8 bg-secondary rounded-full overflow-hidden flex items-center justify-center text-primary font-bold group-hover:scale-110 transition-transform">
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 user.email?.[0].toUpperCase()
               )}
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:block leading-none group-hover:text-secondary transition-colors">{user.displayName || user.email?.split('@')[0]}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:block leading-none group-hover:text-secondary transition-colors">{profile?.full_name || user.email?.split('@')[0]}</span>
               <span className="text-[8px] uppercase tracking-widest text-secondary/60 hidden lg:block">View Profile</span>
             </div>
           </Link>
@@ -137,7 +136,7 @@ const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
             <User className="w-4 h-4" /> Sign In
           </button>
         )}
-        <button className="hidden lg:block bg-secondary text-primary px-6 py-2 rounded-custom font-secondary text-xs uppercase tracking-widest font-bold hover:bg-white transition-all">
+        <button className="hidden lg:block bg-[#CBA34D] text-primary px-8 py-3 rounded-full font-secondary text-xs uppercase tracking-widest font-bold hover:bg-white transition-all shadow-xl">
           Schedule Consultation
         </button>
         <button
@@ -268,20 +267,24 @@ const Footer = () => (
 
 const Home = () => {
   const [properties, setProperties] = useState<any[]>([]);
-  const { isAuthReady } = useFirebase();
+  const { loading: isAuthReady } = useSupabase();
 
   useEffect(() => {
-    if (!isAuthReady) return;
+    if (isAuthReady) return;
 
-    const q = query(collection(db, "properties"), orderBy("createdAt", "desc"), limit(6));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const props = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProperties(props);
-    }, (error) => {
-      console.error("Firestore Error: ", error);
-    });
+    const fetchProps = async () => {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(6);
 
-    return () => unsubscribe();
+      if (error) console.error("Supabase Error: ", error);
+      else if (data) setProperties(data);
+    };
+
+    fetchProps();
   }, [isAuthReady]);
 
   const [leadForm, setLeadForm] = useState({ fullName: "", email: "" });
@@ -316,42 +319,44 @@ const Home = () => {
   return (
     <main>
       {/* Hero Section */}
-      <section className="relative h-screen flex items-end justify-start overflow-hidden pb-32">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <motion.div
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{ duration: 10, repeat: Infinity, repeatType: "reverse" }}
           className="absolute inset-0 z-0"
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent z-10" />
+          {/* Enhanced Overlay: Deep Navy to Transparent */}
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/90 via-primary/20 to-transparent z-10" />
+          <div className="absolute inset-0 bg-primary/40 z-10" />
           <img
-            src="https://picsum.photos/seed/luxury-mansion-exterior-modern-asaba/1920/1080"
-            alt="Hero"
+            src="/hero-bg.jpg"
+            alt="Hero Background"
             className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
           />
         </motion.div>
 
-        <div className="relative z-20 container-custom w-full max-w-7xl">
-          <div className="space-y-12 max-w-4xl">
-            <div className="space-y-8">
+        <div className="relative z-20 container-custom w-full max-w-7xl px-8 flex flex-col items-center text-center">
+          <div className="space-y-12 max-w-5xl">
+            <div className="space-y-6">
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="flex items-center gap-6 mb-4"
+                className="flex items-center justify-center gap-6 mb-4"
               >
-                <div className="h-px w-16 bg-secondary/30" />
-                <span className="text-secondary text-[10px] uppercase tracking-[0.6em] font-bold">Asaba's Premier Firm</span>
+                <div className="h-px w-10 bg-secondary/40" />
+                <span className="text-secondary text-[10px] uppercase tracking-[0.6em] font-bold">Trusted Excellence in Nigeria</span>
+                <div className="h-px w-10 bg-secondary/40" />
               </motion.div>
 
               <motion.h1
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="text-5xl md:text-[6.5rem] text-white font-primary leading-[0.85] tracking-tighter font-medium text-left"
+                className="text-6xl md:text-[7rem] text-white font-primary leading-[0.9] tracking-tighter font-medium"
               >
-                Strategic <br /> Real Estate <br /> <span className="italic font-normal text-secondary/90">Excellence</span>
+                Real Estate Excellence <br /> <span className="italic font-normal text-secondary/90">Redefined in Asaba.</span>
               </motion.h1>
             </div>
 
@@ -361,15 +366,15 @@ const Home = () => {
               transition={{ duration: 1.5, delay: 0.5 }}
               className="space-y-12"
             >
-              <p className="text-white/50 text-xl md:text-2xl font-secondary tracking-[0.2em] uppercase max-w-2xl text-left leading-relaxed font-light">
-                <span className="text-white/80 font-medium">Hamilton Property Center</span> — Defining the future of property investment in Asaba.
+              <p className="text-white/70 text-lg md:text-xl font-secondary tracking-widest max-w-3xl mx-auto leading-relaxed font-light">
+                Hamilton Property Center is defining the future of property investment through <span className="text-white font-bold italic">transparency, luxury, and global standards.</span>
               </p>
 
-              <div className="flex flex-col md:flex-row items-center justify-start gap-10 pt-4">
-                <button className="bg-secondary text-primary px-16 py-6 rounded-custom font-secondary text-xs uppercase tracking-[0.2em] font-bold hover:bg-white transition-all w-full md:w-auto shadow-2xl hover:-translate-y-1 duration-300">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-8 pt-4">
+                <button className="bg-[#CBA34D] text-primary px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-white transition-all w-full md:w-auto shadow-[0_20px_50px_rgba(203,163,77,0.3)] hover:-translate-y-1 duration-300">
                   Explore Properties
                 </button>
-                <button className="border border-white/20 text-white px-16 py-6 rounded-custom font-secondary text-xs uppercase tracking-[0.2em] font-bold hover:bg-white hover:text-primary transition-all w-full md:w-auto hover:-translate-y-1 duration-300">
+                <button className="border border-white/20 backdrop-blur-md bg-white/5 text-white px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:text-primary transition-all w-full md:w-auto hover:-translate-y-1 duration-300">
                   Our Services
                 </button>
               </div>
@@ -377,23 +382,11 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Global Presence Vertical Label */}
-        <div className="absolute right-12 top-1/2 -translate-y-1/2 z-20 hidden lg:flex flex-col items-center gap-12">
-          <div className="h-24 w-px bg-white/20" />
-          <span className="vertical-text text-white/30 text-[10px] uppercase tracking-[0.6em] font-bold">Global Presence</span>
-          <div className="h-24 w-px bg-white/20" />
+        {/* Global Presence Center Label */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-4 opacity-40">
+          <span className="text-white text-[9px] uppercase tracking-[0.8em] font-bold mb-2">Global Presence</span>
+          <div className="h-12 w-px bg-gradient-to-b from-secondary to-transparent" />
         </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-12 right-12 z-20 flex flex-col items-center gap-4"
-        >
-          <span className="text-white/30 text-[8px] uppercase tracking-[0.4em] font-bold vertical-text mb-4">Scroll</span>
-          <div className="w-px h-16 bg-gradient-to-b from-secondary/50 to-transparent" />
-        </motion.div>
       </section>
 
       {/* Trust Strip */}
@@ -731,7 +724,7 @@ const Home = () => {
         href="https://wa.me/2347037936261"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-12 left-12 z-[100] bg-green-500 text-white p-5 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center group"
+        className="fixed bottom-12 left-12 z-[100] bg-green-500 text-white p-5 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center group opacity-40 hover:opacity-100"
       >
         <MessageCircle className="w-6 h-6" />
         <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-4 transition-all duration-500 whitespace-nowrap text-xs uppercase tracking-widest font-bold">Chat with an Advisor</span>
@@ -1163,18 +1156,23 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allProps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      const filtered = allProps.filter(prop =>
-        prop.title?.toLowerCase().includes(queryStr.toLowerCase()) ||
-        prop.location?.toLowerCase().includes(queryStr.toLowerCase()) ||
-        prop.type?.toLowerCase().includes(queryStr.toLowerCase())
-      );
-      setResults(filtered);
+    const fetchProps = async () => {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const filtered = data.filter(prop =>
+          prop.title?.toLowerCase().includes(queryStr.toLowerCase()) ||
+          prop.location?.toLowerCase().includes(queryStr.toLowerCase()) ||
+          prop.property_type?.toLowerCase().includes(queryStr.toLowerCase())
+        );
+        setResults(filtered);
+      }
       setLoading(false);
-    });
-    return () => unsubscribe();
+    };
+    fetchProps();
   }, [queryStr]);
 
   return (
@@ -1215,7 +1213,7 @@ const SearchPage = () => {
 };
 
 const ProfilePage = () => {
-  const { user, profile, loading } = useFirebase();
+  const { user, profile, loading, signOut } = useSupabase();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -1238,10 +1236,10 @@ const ProfilePage = () => {
         <div className="max-w-4xl mx-auto space-y-12">
           <div className="bg-white p-12 rounded-custom shadow-xl border border-gray/10 flex flex-col md:flex-row items-center gap-12">
             <div className="w-32 h-32 bg-primary/5 rounded-full overflow-hidden flex items-center justify-center text-primary text-4xl font-bold border-4 border-secondary">
-              {profile.photoURL ? (
-                <img src={profile.photoURL} alt={profile.displayName || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt={profile.full_name || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                profile.email?.[0].toUpperCase()
+                user.email?.[0].toUpperCase()
               )}
             </div>
             <div className="space-y-4 text-center md:text-left flex-grow">
@@ -1264,7 +1262,7 @@ const ProfilePage = () => {
                 <div className="space-y-1">
                   <p className="text-[10px] uppercase tracking-widest font-bold text-primary/40">Member Since</p>
                   <p className="text-primary font-medium">
-                    {profile.createdAt?.toDate ? new Date(profile.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -1277,7 +1275,7 @@ const ProfilePage = () => {
               <p className="text-gray text-sm">Your account profile is automatically managed via Google Authentication. To update your profile picture or primary email, please manage your Google Account settings.</p>
               <div className="pt-8 border-t border-gray/10">
                 <button
-                  onClick={() => signOut(auth)}
+                  onClick={() => signOut()}
                   className="text-red-500 font-bold uppercase tracking-widest text-xs hover:text-red-700 transition-colors"
                 >
                   Sign Out of All Sessions
@@ -1295,7 +1293,7 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   return (
-    <FirebaseProvider>
+    <SupabaseProvider>
       <Router>
         <div className="min-h-screen flex flex-col">
           <Header onOpenLogin={() => setIsLoginOpen(true)} />
@@ -1329,6 +1327,6 @@ export default function App() {
           />
         </div>
       </Router>
-    </FirebaseProvider>
+    </SupabaseProvider>
   );
 }
