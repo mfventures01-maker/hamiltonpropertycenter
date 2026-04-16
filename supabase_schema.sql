@@ -80,4 +80,29 @@ CREATE POLICY "Users view own favorites." ON public.favorites FOR SELECT USING (
 CREATE POLICY "Users insert own favorites." ON public.favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users delete own favorites." ON public.favorites FOR DELETE USING (auth.uid() = user_id);
 
+CREATE TABLE IF NOT EXISTS public.audit_log_entries (
+  id uuid default uuid_generate_v4() primary key,
+  admin_id uuid references public.profiles(id) on delete set null,
+  action text not null,
+  entity text not null,
+  entity_id uuid,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+ALTER TABLE public.audit_log_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can view audit logs" ON public.audit_log_entries FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Admins can insert audit logs" ON public.audit_log_entries FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE TABLE IF NOT EXISTS public.agent_verification_requests (
+  id uuid default uuid_generate_v4() primary key,
+  agent_id uuid references public.agents(id) on delete cascade not null,
+  status text default 'pending',
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+ALTER TABLE public.agent_verification_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Agents can view own requests" ON public.agent_verification_requests FOR SELECT USING (EXISTS (SELECT 1 FROM public.agents WHERE id = agent_id AND user_id = auth.uid()));
+CREATE POLICY "Admins can view all verification requests" ON public.agent_verification_requests FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Agents can insert requests" ON public.agent_verification_requests FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.agents WHERE id = agent_id AND user_id = auth.uid()));
+
 -- End of Schema
