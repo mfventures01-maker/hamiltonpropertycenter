@@ -65,7 +65,7 @@ const Header = ({ onOpenLogin }: { onOpenLogin: () => void }) => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 w-full z-50 transition-all duration-500 px-12 py-10 flex items-center justify-between",
+        "fixed top-0 left-0 w-full z-50 transition-all duration-500 px-8 lg:px-16 xl:px-24 py-10 flex items-center justify-between",
         isScrolled ? "bg-primary/80 backdrop-blur-xl py-6 shadow-2xl border-b border-white/5" : "bg-transparent"
       )}
     >
@@ -333,6 +333,8 @@ const Home = () => {
         >
           {/* Enhanced Overlay: Deep Navy to Transparent */}
           <div className="absolute inset-0 bg-gradient-to-b from-primary/90 via-primary/20 to-transparent z-10" />
+          {/* High-Contrast Nav Protection Gradient */}
+          <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none" />
           <div className="absolute inset-0 bg-primary/40 z-10" />
           <img
             src="/hero-bg.jpg"
@@ -359,7 +361,7 @@ const Home = () => {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="text-6xl md:text-[7rem] text-white font-primary leading-[0.9] tracking-tighter font-medium"
+                className="text-6xl md:text-[7rem] text-white font-primary leading-[1.1] md:leading-[1.1] mb-8 tracking-tighter font-medium drop-shadow-lg"
               >
                 Real Estate Excellence <br /> <span className="italic font-normal text-secondary/90">Redefined in Asaba.</span>
               </motion.h1>
@@ -371,15 +373,15 @@ const Home = () => {
               transition={{ duration: 1.5, delay: 0.5 }}
               className="space-y-12"
             >
-              <p className="text-white/70 text-lg md:text-xl font-secondary tracking-widest max-w-3xl mx-auto leading-relaxed font-light">
-                Hamilton Property Center is defining the future of property investment through <span className="text-white font-bold italic">transparency, luxury, and global standards.</span>
+              <p className="text-white text-lg md:text-xl font-secondary tracking-widest max-w-3xl mx-auto leading-relaxed font-light bg-black/30 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                Hamilton Property Center is defining the future of property investment through <span className="text-white font-bold italic drop-shadow-md">transparency, luxury, and global standards.</span>
               </p>
 
               <div className="flex flex-col md:flex-row items-center justify-center gap-8 pt-4">
-                <button className="bg-[#CBA34D] text-primary px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-white transition-all w-full md:w-auto shadow-[0_20px_50px_rgba(203,163,77,0.3)] hover:-translate-y-1 duration-300">
+                <button className="bg-white text-primary px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-gray-200 transition-all w-full md:w-auto shadow-[0_20px_50px_rgba(255,255,255,0.2)] hover:-translate-y-1 duration-300">
                   Explore Properties
                 </button>
-                <button className="border border-white/20 backdrop-blur-md bg-white/5 text-white px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:text-primary transition-all w-full md:w-auto hover:-translate-y-1 duration-300">
+                <button className="border border-white bg-transparent text-white px-16 py-6 rounded-full font-secondary text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:text-primary transition-all w-full md:w-auto hover:-translate-y-1 duration-300">
                   Our Services
                 </button>
               </div>
