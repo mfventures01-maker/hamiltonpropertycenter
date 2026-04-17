@@ -20,6 +20,7 @@ import {
     ChevronLeft as ChevronLeftIcon
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Logo from "../components/Logo";
 
 export const PropertyDetailsPage = () => {
     const { id } = useParams();
@@ -424,10 +425,4 @@ export const PropertyDetailsPage = () => {
     );
 };
 
-// Help Logo Component
-const Logo = ({ className = "" }) => (
-    <div className={`flex flex-col items-start ${className}`}>
-        <span className="text-white font-primary text-2xl tracking-[0.1em] uppercase leading-none">Hamilton</span>
-        <span className="text-secondary font-secondary text-[8px] tracking-[0.4em] uppercase font-bold mt-1">Property Center</span>
-    </div>
-);
+// Local Logo removed to utilize centralized premium component.

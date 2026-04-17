@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ChevronRight, MapPin, Home as HomeIcon, Briefcase, Info, Mail, User, Eye, Check, Phone, MessageCircle, Instagram, Facebook, Linkedin } from "lucide-react";
@@ -12,18 +12,22 @@ function cn(...inputs: ClassValue[]) {
 import { PropertyCard } from "./components/PropertyCard";
 import { ServiceCard } from "./components/ServiceCard";
 import { LoginModal } from "./components/LoginModal";
-const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const PropertyDetailsPage = lazy(() => import('./pages/PropertyDetails').then(m => ({ default: m.PropertyDetailsPage })));
-const AgentDashboard = lazy(() => import('./pages/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
-const FavoritesPage = lazy(() => import('./pages/Favorites').then(m => ({ default: m.FavoritesPage })));
 import { SupabaseProvider, useSupabase } from "./context/SupabaseContext";
 import { supabase } from "./lib/supabase";
 import { LoadingScreen } from "./components/LoadingScreen";
+import Logo from "./components/Logo";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { lazyRetry } from "./lib/lazyRetry";
+
+const AdminDashboard = lazyRetry(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const PropertyDetailsPage = lazyRetry(() => import('./pages/PropertyDetails').then(m => ({ default: m.PropertyDetailsPage })));
+const AgentDashboard = lazyRetry(() => import('./pages/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const FavoritesPage = lazyRetry(() => import('./pages/Favorites').then(m => ({ default: m.FavoritesPage })));
 
 // New Onboarding Pages
-const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
-const VerifyAgent = lazy(() => import('./pages/VerifyAgent').then(m => ({ default: m.VerifyAgent })));
-const PropertiesPage = lazy(() => import('./pages/Properties').then(m => ({ default: m.PropertiesPage })));
+const Register = lazyRetry(() => import('./pages/Register').then(m => ({ default: m.Register })));
+const VerifyAgent = lazyRetry(() => import('./pages/VerifyAgent').then(m => ({ default: m.VerifyAgent })));
+const PropertiesPage = lazyRetry(() => import('./pages/Properties').then(m => ({ default: m.PropertiesPage })));
 
 // --- COMPONENTS ---
 
@@ -1297,7 +1301,9 @@ export default function App() {
     <SupabaseProvider>
       <Router>
         <div className="min-h-screen flex flex-col">
-          <Header onOpenLogin={() => setIsLoginOpen(true)} />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-900 text-white">Header failed to load.</div>}>
+            <Header onOpenLogin={() => setIsLoginOpen(true)} />
+          </ErrorBoundary>
           <div className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -1310,19 +1316,25 @@ export default function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={
-                <Suspense fallback={<LoadingScreen text="Loading Admin Interface..." />}>
-                  <AdminDashboard />
-                </Suspense>
+                <ErrorBoundary>
+                  <Suspense fallback={<LoadingScreen text="Loading Admin Interface..." />}>
+                    <AdminDashboard />
+                  </Suspense>
+                </ErrorBoundary>
               } />
               <Route path="/property/:id" element={
-                <Suspense fallback={<LoadingScreen text="Loading Property Details..." />}>
-                  <PropertyDetailsPage />
-                </Suspense>
+                <ErrorBoundary>
+                  <Suspense fallback={<LoadingScreen text="Loading Property Details..." />}>
+                    <PropertyDetailsPage />
+                  </Suspense>
+                </ErrorBoundary>
               } />
               <Route path="/agent-dashboard" element={
-                <Suspense fallback={<LoadingScreen text="Loading Agent Portal..." />}>
-                  <AgentDashboard />
-                </Suspense>
+                <ErrorBoundary>
+                  <Suspense fallback={<LoadingScreen text="Loading Agent Portal..." />}>
+                    <AgentDashboard />
+                  </Suspense>
+                </ErrorBoundary>
               } />
               <Route path="/favorites" element={
                 <Suspense fallback={<LoadingScreen text="Loading Favorites..." />}>
