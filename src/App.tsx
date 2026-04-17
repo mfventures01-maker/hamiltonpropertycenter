@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ChevronRight, MapPin, Home as HomeIcon, Briefcase, Info, Mail, User, Eye, Check, Phone, MessageCircle, Instagram, Facebook, Linkedin } from "lucide-react";
@@ -12,17 +12,18 @@ function cn(...inputs: ClassValue[]) {
 import { PropertyCard } from "./components/PropertyCard";
 import { ServiceCard } from "./components/ServiceCard";
 import { LoginModal } from "./components/LoginModal";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { PropertyDetailsPage } from "./pages/PropertyDetails";
-import { AgentDashboard } from "./pages/AgentDashboard";
-import { FavoritesPage } from "./pages/Favorites";
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const PropertyDetailsPage = lazy(() => import('./pages/PropertyDetails').then(m => ({ default: m.PropertyDetailsPage })));
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const FavoritesPage = lazy(() => import('./pages/Favorites').then(m => ({ default: m.FavoritesPage })));
 import { SupabaseProvider, useSupabase } from "./context/SupabaseContext";
 import { supabase } from "./lib/supabase";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 // New Onboarding Pages
-import { Register } from "./pages/Register";
-import { VerifyAgent } from "./pages/VerifyAgent";
-import { PropertiesPage } from "./pages/Properties";
+const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
+const VerifyAgent = lazy(() => import('./pages/VerifyAgent').then(m => ({ default: m.VerifyAgent })));
+const PropertiesPage = lazy(() => import('./pages/Properties').then(m => ({ default: m.PropertiesPage })));
 
 // --- COMPONENTS ---
 
@@ -1308,16 +1309,48 @@ export default function App() {
               <Route path="/careers" element={<CareersPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/property/:id" element={<PropertyDetailsPage />} />
-              <Route path="/agent-dashboard" element={<AgentDashboard />} />
-              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/admin" element={
+                <Suspense fallback={<LoadingScreen text="Loading Admin Interface..." />}>
+                  <AdminDashboard />
+                </Suspense>
+              } />
+              <Route path="/property/:id" element={
+                <Suspense fallback={<LoadingScreen text="Loading Property Details..." />}>
+                  <PropertyDetailsPage />
+                </Suspense>
+              } />
+              <Route path="/agent-dashboard" element={
+                <Suspense fallback={<LoadingScreen text="Loading Agent Portal..." />}>
+                  <AgentDashboard />
+                </Suspense>
+              } />
+              <Route path="/favorites" element={
+                <Suspense fallback={<LoadingScreen text="Loading Favorites..." />}>
+                  <FavoritesPage />
+                </Suspense>
+              } />
 
               {/* Onboarding & Marketplace Routes */}
-              <Route path="/register" element={<Register />} />
-              <Route path="/verify-agent" element={<VerifyAgent />} />
-              <Route path="/verify-developer" element={<VerifyAgent />} />
-              <Route path="/properties" element={<PropertiesPage />} />
+              <Route path="/register" element={
+                <Suspense fallback={<LoadingScreen text="Loading Registration..." />}>
+                  <Register />
+                </Suspense>
+              } />
+              <Route path="/verify-agent" element={
+                <Suspense fallback={<LoadingScreen text="Loading Verification..." />}>
+                  <VerifyAgent />
+                </Suspense>
+              } />
+              <Route path="/verify-developer" element={
+                <Suspense fallback={<LoadingScreen text="Loading Verification..." />}>
+                  <VerifyAgent />
+                </Suspense>
+              } />
+              <Route path="/properties" element={
+                <Suspense fallback={<LoadingScreen text="Loading Properties..." />}>
+                  <PropertiesPage />
+                </Suspense>
+              } />
             </Routes>
           </div>
           <Footer />

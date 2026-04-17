@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, HAS_SUPABASE_ENV } from '../lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
 export type Role = 'buyer' | 'agent' | 'admin';
@@ -105,8 +105,22 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     const signOut = async () => {
+        if (!HAS_SUPABASE_ENV) return;
         await supabase.auth.signOut();
     };
+
+    if (!HAS_SUPABASE_ENV) {
+        return (
+            <div className="min-h-screen bg-primary flex flex-col items-center justify-center text-white px-4 text-center">
+                <div className="bg-white/5 p-12 rounded-custom border border-red-500/30 max-w-lg w-full flex flex-col items-center space-y-6">
+                    <h1 className="text-2xl font-primary text-red-400">Configuration Error</h1>
+                    <p className="text-white/60 text-sm font-light">
+                        Supabase environment variables are missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <SupabaseContext.Provider value={{ user, session, profile, role, loading, signOut }}>
